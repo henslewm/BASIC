@@ -60,16 +60,19 @@ SetTimeout #1,35
    'Turn off all lines except weather data.  Runs on restart.
    InitCmdTbl(1, 0) = "$PAMTX"                  :  InitCmdTbl(1, 1) = 0 'Turn off line streaming
    InitCmdTbl(2, 0) = "$PAMTC,EN,GGA,1"        	:  InitCmdTbl(2, 1) = 0 ' Leave the GPS on. Max Length 82
-   InitCmdTbl(3, 0) = "$PAMTC,EN,MWVR,0"    	   :  InitCmdTbl(3, 1) = 0
-   InitCmdTbl(4, 0) = "$PAMTC,EN,MWVT,0" 	      :  InitCmdTbl(4, 1) = 0
-   InitCmdTbl(5, 0) = "$PAMTC,EN,MWD,0"		   :  InitCmdTbl(5, 1) = 0
-   InitCmdTbl(6, 0) = "$PAMTC,EN,ROT,0"	   	:  InitCmdTbl(6, 1) = 0
+   InitCmdTbl(3, 0) = "$PAMTC,EN,MWVR,0"    	:  InitCmdTbl(3, 1) = 0
+   InitCmdTbl(4, 0) = "$PAMTC,EN,MWVT,0" 	:  InitCmdTbl(4, 1) = 0
+   InitCmdTbl(5, 0) = "$PAMTC,EN,MWD,0"		:  InitCmdTbl(5, 1) = 0
+   InitCmdTbl(6, 0) = "$PAMTC,EN,ROT,0"		:  InitCmdTbl(6, 1) = 0
    InitCmdTbl(7, 0) = "$PAMTC,EN,ZDA,0"         :  InitCmdTbl(7, 1) = 0
-   InitCmdTbl(8, 0) = "$PAMTC,EN,VTG,0"		   :  InitCmdTbl(8, 1) = 0
-   InitCmdTbl(9, 0) = "$PAMTC,EN,HDT,0"		   :  InitCmdTbl(9, 1) = 0
-   InitCmdTbl(10, 0) = "$PAMTC,EN,XDRA,0"	    	:  InitCmdTbl(10, 1) = 0
-   InitCmdTbl(11, 0) = "$PAMTC,EN,XDRB,0"			:  InitCmdTbl(11, 1) = 0
-   InitCmdTbl(12, 0) = "$PAMTC,BAUD,38400"		:  InitCmdTbl(12, 1) = 0
+   InitCmdTbl(8, 0) = "$PAMTC,EN,VTG,0"		:  InitCmdTbl(8, 1) = 0
+   InitCmdTbl(9, 0) = "$PAMTC,EN,HDT,0"		:  InitCmdTbl(9, 1) = 0
+   InitCmdTbl(10, 0) = "$PAMTC,EN,XDRA,0"	:  InitCmdTbl(10, 1) = 0
+   InitCmdTbl(11, 0) = "$PAMTC,EN,XDRB,0"	:  InitCmdTbl(11, 1) = 0
+   InitCmdTbl(12, 0) = "$PAMTC,BAUD,4800"		:  InitCmdTbl(12, 1) = 0
+   InitCmdTbl(12, 0) = "$PAMTC,EN,S"		:  InitCmdTbl(12, 1) = 0 'Save to EEROM
+   InitCmdTbl(13, 0) = "$PAMTX,1"               :  InitCmdTbl(13, 1) = 0 ' Restart
+
    ' Changes the baud rate
    SetPort #1, 38400,NOPARITY, 8, 1, NOHANDSHAKE
    InitCmdTbl(13, 0) = "$PAMTC,EN,S"		:  InitCmdTbl(13, 1) = 0 'Save to EEROM

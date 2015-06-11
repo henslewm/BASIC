@@ -17,7 +17,7 @@
 '
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-'***'Variables initilized
+'********'Variables initilized
 CONST AIRMAR_CONNECTED = 1       ' Easily disable code for testing.
 CONST CHAR_SH = Chr(1)           ' Start of heading character
 CONST CHAR_SX = Chr(2)           ' Start of text character
@@ -31,6 +31,7 @@ CONST MAXBYTES = 100             ' Max num bytes in sensor response. See manual.
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' Port Configuration Parameters
+'
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 CONST PORT = "COM4:"
 CONST PORT_TIMEOUT = 0.5
@@ -41,11 +42,9 @@ Const NOHANDSHAKE = 0
 
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-' Configure Sensor
-'
-' This code runs at the program's start. We want to disable all lines aside
-' from the wind, baro, gps and temperature output line. The Port is opened
-' and left open for better performance.
+' Configure Sensor at Program Start
+' We want to disable all lines aside from the wind, baro, gps and temperature 
+' output line. 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Sub START_PROGRAM
 	StatusMsg "Starting Program"
@@ -60,7 +59,7 @@ Sub START_PROGRAM
 			ErrorMsg "Failed to open com port, err " &Err
 			GoTo ErrorHandler
 		End If
-		' StatusMsg "AIRMAR port opened"
+		StatusMsg "AIRMAR port opened"
 		SetPort #1, BAUD, NOPARITY, 8, 1, NOHANDSHAKE
 		StartTime = Time
 		TimeValid = false
@@ -68,66 +67,75 @@ Sub START_PROGRAM
 		'*** port opened and initialized
 		StatusMsg "AIRMAR Init..."
 	   'Turn off all lines except weather data.  Runs on restart.
-	   InitCmdTbl(1, 0) = "$PAMTX"                  :  InitCmdTbl(1, 1) = 0 'Turn off line streaming
-	   InitCmdTbl(2, 0) = "$PAMTC,EN,GGA,1"        	:  InitCmdTbl(2, 1) = 0 ' Leave the GPS on. Max Length 82
-	   InitCmdTbl(3, 0) = "$PAMTC,EN,MWVR,0"    	   :  InitCmdTbl(3, 1) = 0
-	   InitCmdTbl(4, 0) = "$PAMTC,EN,MWVT,0" 	      :  InitCmdTbl(4, 1) = 0
-	   InitCmdTbl(5, 0) = "$PAMTC,EN,MWD,0"		   :  InitCmdTbl(5, 1) = 0
-	   InitCmdTbl(6, 0) = "$PAMTC,EN,ROT,0"	   	:  InitCmdTbl(6, 1) = 0
-	   InitCmdTbl(7, 0) = "$PAMTC,EN,ZDA,0"         :  InitCmdTbl(7, 1) = 0
-	   InitCmdTbl(8, 0) = "$PAMTC,EN,VTG,0"		   :  InitCmdTbl(8, 1) = 0
-	   InitCmdTbl(9, 0) = "$PAMTC,EN,HDT,0"		   :  InitCmdTbl(9, 1) = 0
-	   InitCmdTbl(10, 0) = "$PAMTC,EN,XDRA,0"	    	:  InitCmdTbl(10, 1) = 0
-	   InitCmdTbl(11, 0) = "$PAMTC,EN,XDRB,0"			:  InitCmdTbl(11, 1) = 0
-	   InitCmdTbl(12, 0) = "$PAMTC,BAUD,38400"		:  InitCmdTbl(12, 1) = 0
-	   ' Changes the baud rate
-	   SetPort #1, 38400,NOPARITY, 8, 1, NOHANDSHAKE
-	   InitCmdTbl(13, 0) = "$PAMTC,EN,S"		:  InitCmdTbl(13, 1) = 0 'Save to EEROM
+	   InitCmdTbl(1, 0)  = "$PAMTX"           		:  InitCmdTbl(1, 1) = 0 'Turn off line streaming
+	   InitCmdTbl(2, 0)  = "$PAMTC,EN,GGA,0"        :  InitCmdTbl(2, 1) = 0 
+	   InitCmdTbl(3, 0)  = "$PAMTC,EN,GLL,1"        :  InitCmdTbl(3, 1) = 0 
+	   InitCmdTbl(4, 0)  = "$PAMTC,EN,MWVR,0"       :  InitCmdTbl(4, 1) = 0 ' Leave the GPS on. Max Length 82
+	   InitCmdTbl(5, 0)  = "$PAMTC,EN,MWVT,0" 	   :  InitCmdTbl(5, 1) = 0
+	   InitCmdTbl(6, 0)  = "$PAMTC,EN,MWD,0"		   :  InitCmdTbl(6, 1) = 0
+	   InitCmdTbl(7, 0)  = "$PAMTC,EN,ROT,0"	   	:  InitCmdTbl(7, 1) = 0
+	   InitCmdTbl(8, 0)  = "$PAMTC,EN,ZDA,0"        :  InitCmdTbl(8, 1) = 0
+	   InitCmdTbl(9, 0)  = "$PAMTC,EN,VTG,0"		   :  InitCmdTbl(9, 1) = 0
+	   InitCmdTbl(10, 0)  = "$PAMTC,EN,HDT,0"		   :  InitCmdTbl(10, 1) = 0
+	   InitCmdTbl(11, 0) = "$PAMTC,EN,XDRA,0"	    	:  InitCmdTbl(11, 1) = 0
+	   InitCmdTbl(12, 0) = "$PAMTC,EN,XDRB,0"			:  InitCmdTbl(12, 1) = 0
+	   InitCmdTbl(13, 0) = "$PAMTC,EN,S"				:  InitCmdTbl(13, 1) = 0 'Save to EEROM
 	   InitCmdTbl(14, 0) = "$PAMTX,1"               :  InitCmdTbl(14, 1) = 0 ' Restart
-	 NumBytes = 0
+	   
+	   NumBytes = 0
 	   DATA = ""
-	      FlushInput PORT
-	      ' Output each of the init commands.
-	      FOR i = 1 TO UBOUND(InitCmdTbl)
-	         Print #1, (InitCmdTbl(i, 0) + ENTER)
-	         SLEEP PORT_TIMEOUT
-	      NEXT i
+      FlushInput PORT
+
+      ' Output each of the init commands.
+      FOR i = 1 TO UBOUND(InitCmdTbl)
+         Print #1, (InitCmdTbl(i, 0) + ENTER)
+         SLEEP PORT_TIMEOUT
+      NEXT i
 	ELSE
 		ErrorHandler:
 	      ErrorMsg Format("AIRMAR: Open port %s failed (configure)", PORT)
 	End If
+
+	Close #1	
+	StatusMsg "Closing AirMar COM Port"
+	If Err <> 0 Then
+		ErrorMsg "Failed to close com port, err " &Err
+		GoTo ErrorHandler
+	End If
+
 End Sub
-
-
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' Initialize Sensor
 ' This code runs at recording start. Here we simply open the port.
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'IF AIRMAR_CONNECTED THEN
-' '*** Open port, abort if recording stopped
-'  If Abort Then Goto ErrorHandler
-'  On Error Resume Next
-'  StatusMsg "Opening AIRMAR port"
-'  Open PORT as #1  'iFilenum
-'  If Err <> 0 Then
-'     ErrorMsg "Failed to open com port, err " &Err
-'     Goto ErrorHandler
-'  End If
-'  
-'  
-'  StatusMsg "AIRMAR port opened"
-'  SetPort #1, BAUD, NOPARITY, 8, 1, NOHANDSHAKE
-'  StartTime = Time
-'  TimeValid = false
-'  SetTimeout #1,35
-'ELSE
-'ErrorHandler:
-'      ErrorMsg Format("AIRMAR: Open port %s failed.", PORT)
-'END If
-
+Sub Start_Recording
+	If AIRMAR_CONNECTED THEN
+	 '*** Open port, abort if recording stopped
+	  If Abort Then Goto ErrorHandler
+	  On Error Resume Next
+	  StatusMsg "Opening AIRMAR port"
+	  Open PORT as #1  'iFilenum
+	  If Err <> 0 Then
+	     ErrorMsg "Failed to open com port, err " &Err
+	     Goto ErrorHandler
+	  End If
+	  
+	  
+	  StatusMsg "AIRMAR port opened"
+	  SetPort #1, BAUD, NOPARITY, 8, 1, NOHANDSHAKE
+	  StartTime = Time
+	  TimeValid = false
+	  SetTimeout #1,35
+	  
+	  'Flush any previous messages from input buffer.
+	  FlushInput PORT
+	Else
+	ErrorHandler:
+	      ErrorMsg Format("AIRMAR: Open port %s failed.", PORT)
+	End If
+End Sub
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'
 ' Measure Sensor
 '
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -177,6 +185,12 @@ GGA_Alt  	= 0
 GGA_M    	= ""
 GGA_geoid	= 0
 
+' Output from GPGLL
+GLL_lat 			= 0 
+GLL_long 		= 0
+GLL_ns			= "N"
+GLL_ew			= "E"
+
 ' NMEA CheckSum Variable 
 Cksum 	= ""
 On Error Resume Next
@@ -192,10 +206,24 @@ tStart = Now
 
 'Typical string from the AirMar for GPS:
 '$GPGGA,140503.99,3645.8079,N,07615.7310,W,1,5,3.8,628.7,M,-37.4,M,,*67
+'$GPGLL,4916.46,N,12311.12,W,,V,N*64
 
 '123451234512345123451234512345123451234512345123451234512345
 '----------------10-------------20--------------30--------------40-------------50-------------60
-
+'eg1. $GPGLL,3751.65,S,14507.36,E*77
+'eg2. $GPGLL,4916.45,N,12311.12,W,225444,A
+'           4916.46,N    Latitude 49 deg. 16.45 min. North
+'           12311.12,W   Longitude 123 deg. 11.12 min. West
+'           225444       Fix taken at 22:54:44 UTC
+'           A            Data valid
+'eg3. $GPGLL,5133.81,N,00042.25,W*75
+'               1    2     3    4 5
+'
+'      1    5133.81   Current latitude
+'      2    N         North/South
+'      3    00042.25  Current longitude
+'      4    W         East/West
+'      5    *75       checksum
 
 F1 = FreeFile         
 Open "DataFile.txt" For Output As F1
@@ -267,21 +295,41 @@ Open "Datafile.txt" for Input as F1
 			
 		Else
 			
-			''''''''''''''''''''''''''''''''''''' QC & Record GPS''''''''''''''''''''''''''''''''		
-				If MsgID = "GPGGA" Then
-					Input F1, MsgID, GGA_UTC, GGA_lat, NG, GGA_long, GGA_ew, GGA_quality, NG, NG, NG, GGA_ns, NG, NG, NG, Cksum
+			''''''''''''''''''''''''''''''''''''' QC & Record GPS GPGGA''''''''''''''''''''''''''''''''		
+			'If MsgID = "GPGGA" Then
+			'	Input F1, MsgID, GGA_UTC, GGA_lat, NG, GGA_long, GGA_ew, GGA_quality, NG, NG, NG, GGA_ns, NG, NG, NG, Cksum
+			'    
+		   'Unable to set the GGA_lat and GGA_long directions. The string output N/S/E/W 
+		   'seems to come out in a '0 0' form. Perhaps BASIC forces all arguments to be 
+		   'same data type as first found when parsing?
+			''Set the #6 output to Longitude
+			'   SetOutputName 6, "Lat"
+			'   SetOutputData 6, GGA_lat
+			'   SetOutputUnits 6, "min"
+			
+			''Set the #7 output to Latitude
+			'   SetOutputName 7, "Long"
+			'   SetOutputData 7, GGA_long
+			'   SetOutputUnits 7, "min"
+			'	
+			'Else
+			'End If
+		   ''''''''''''''''''''''''''''''''''''' QC & Record GPS''''''''''''''''''''''''''''''''		
+			'$GPGLL,4916.46,N,12311.12,W,,V,N*64
+				If MsgID = "GPGLL" Then
+					Input F1, MsgID, GLL_lat, GLL_ns, GLL_long, GLL_ew,NG,NG, Cksum
 				    
 				    'Unable to set the GGA_lat and GGA_long directions. The string output N/S/E/W 
 				    'seems to come out in a '0 0' form. Perhaps BASIC forces all arguments to be 
 				    'same data type as first found when parsing?
 			  'Set the #6 output to Longitude
 			     SetOutputName 6, "Lat"
-			     SetOutputData 6, GGA_lat
+			     SetOutputData 6, GLL_lat
 			     SetOutputUnits 6, "min"
 			
 			  'Set the #7 output to Latitude
 			     SetOutputName 7, "Long"
-			     SetOutputData 7, GGA_long
+			     SetOutputData 7, GLL_long
 			     SetOutputUnits 7, "min"
 					
 				Else
@@ -291,3 +339,7 @@ Open "Datafile.txt" for Input as F1
 Close F1
 End Sub
 
+Sub Stop_Recording
+	Close #1
+	StatusMsg "Closing AirMar COM Port"
+End Sub
