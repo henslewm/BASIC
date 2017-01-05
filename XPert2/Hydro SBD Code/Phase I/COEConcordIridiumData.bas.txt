@@ -1,0 +1,201 @@
+'-------------------------------------------------------------------------------
+'     COE Concord ata Formating.BAS - 
+'       BASIC code for Bhutan GLOF project that handles AWL data formatting task
+'
+'     Function FormatIridiumData
+'        This routine formats the data in a self timed hourly messages. 
+'
+'     Function FormatIridiumWXData
+'        This routine formats the data in response to a WX command.
+'
+'
+'-------------------------------------------------------------------------------
+
+Const True = -1
+Const False = 0
+Const LoggingIn=2
+Const LoggedIn=4
+Const LF = Chr(10)
+Const CR = Chr(13)
+Const CRLF = Chr(13) & Chr(10)
+
+Const SHEFFormat = False   'set to False for pseudobinary
+
+
+Declare Function ReadLog(LogName, Sensor, TimeStamp)
+
+
+'************************SENSOR ARRAY ****************************************
+'set up sensors array
+'array at 0 holds data
+'array at 1 holds sensor name
+'array at 2 holds sensor interval in seconds
+'array at 3 holds num values to transmit
+'array at 4 holds right digits
+DataToTx (0, 0) = "" :DataToTx (0, 1) = "HG"     :DataToTx (0, 2) =  900   :DataToTx (0, 3) = 4   :DataToTx (0, 4) = 2
+DataToTx (1, 0) = "" :DataToTx (1, 1) = "PC"     :DataToTx (1, 2) =  900   :DataToTx (1, 3) = 4   :DataToTx (1, 4) = 2
+DataToTx (2, 0) = "" :DataToTx (2, 1) = "TA"     :DataToTx (2, 2) =  900   :DataToTx (2, 3) = 4   :DataToTx (2, 4) = 1
+DataToTx (3, 0) = "" :DataToTx (3, 1) = "XR"     :DataToTx (3, 2) =  900   :DataToTx (3, 3) = 4   :DataToTx (3, 4) = 0
+DataToTx (4, 0) = "" :DataToTx (4, 1) = "US"     :DataToTx (4, 2) =  900   :DataToTx (4, 3) = 4   :DataToTx (4, 4) = 1
+DataToTx (5, 0) = "" :DataToTx (5, 1) = "UD"     :DataToTx (5, 2) =  900   :DataToTx (5, 3) = 4   :DataToTx (5, 4) = 0
+DataToTx (6, 0) = "" :DataToTx (6, 1) = "PA"     :DataToTx (6, 2) =  900   :DataToTx (6, 3) = 4   :DataToTx (6, 4) = 1
+DataToTx (7, 0) = "" :DataToTx (7, 1) = "VB"     :DataToTx (7, 2) =  3600  :DataToTx (7, 3) = 1   :DataToTx (7, 4) = 1
+
+
+RLData = 0.0
+RLQuality = "U"
+RLUnits = ""
+
+
+'********************* FUNCTION FormatIridiumWXData ******************************
+
+Public Function FormatIridiumWXData
+    On Error Resume Next
+    sMsg = ""
+    'Get sensor names
+    S = Systat("SHOW /TAG")
+    StatusMsg "S = "+S+"."
+    'Example reply is:
+    '    BAT          13.5 G OK
+    '    ITEMP        13.5 G OK
+    '    CONST        13.5 G OK
+
+    sPos = 1
+    sLen = Len(S)
+    StatusMsg "sLen = "&(sLen)
+    While sLen > 0
+      'extract first sensor line
+       iCRLF = InStr(sPos, S, CRLF)
+       StatusMsg "CRLF pos = "&(iCRLF)
+       If iCRLF > 0 Then
+          sLine = Mid(S, 1, iCRLF)
+          StatusMsg "sLine = "+sLine
+          j = InStr(1, sLine, "  ")
+          StatusMsg "j = "&(j)
+          If j > 0 Then
+             sTag = Mid(sLine, 1, j-1)
+             StatusMsg "tag = "+ sTag
+             nVal = Tag(sTag)
+             StatusMsg "Sensor name: "+sTag+ " - "&(nVal)
+             sMsg = sMsg + sTag + " " &(nVal) + CRLF
+          End If
+       End If
+       s = Mid(S, iCRLF+2, sLen-iCRLF+2)
+       sLen = Len(s)
+       StatusMsg "S = "+S+"."
+       StatusMsg "sLen = "&(sLen)
+       'SPos  SPos +2
+       'StatusMsg "sPos = "&(sPos)
+    WEnd
+  
+    FormatIridiumWXData = sMsg
+  
+End Function  
+
+'********************* FUNCTION FormatIridiumData ******************************
+Public Function FormatIridiumData
+
+    On Error Resume Next
+    StatusMsg "In FormatIridiumData"
+
+    'INITIALIZE local variables
+    LogName  = "SSP.LOG"             'where to get the data from
+    TimeNow = GetScheduledTime       'what time are we strarting
+    TxDataBuffer = ""                'temp tx buffer
+
+    NumSensors = Ubound(DataToTx)
+    For I = 0 to NumSensors
+      If SHEFFormat Then
+         DataToTx(I, 0) = TimeNow + ":" + DataToTx(I, 1) + " "
+      Else
+         DataToTx(I, 0) = ""
+      End If
+    Next I
+
+    ' Loop to get data from log
+    'Get all defined sensors and build their string
+    nOffset = 0
+    TSens = 0
+    SensLoop = 0
+    For I = 0 To NumSensors
+
+      'Get recent timestamp based on sensor interval and add time offset and interval to sensor message
+      nOffset = (TimeNow Mod (DataToTx(I, 2)))
+      TSens = TimeNow - nOffset
+      nOffset = int(nOffset / 60 + 0.5)
+
+      If SHEFFormat Then
+         DataToTx(I, 0) = DataToTx(I, 0) + Str(Minute(TimeNow - TSens)) + " #" + Int((DataToTx(I, 2)/60))
+      End If
+      'How many values. Since we only have two, if it's not 1800 (sec) it is 3600 (sec)
+      SensLoop = DataToTx(I, 3)
+      StatusMsg  DataToTx(I, 1) + " values to TX: " + str(DataToTx(I, 3))
+
+      'Get the number of values specified (recent data first),
+      ' Add good data to sensor tx string, place an M in bad or missing data
+      For T = 1 to SensLoop
+         If (ReadLog(LogName, DataToTx(I, 1), TSens) = 1) Then
+            StatusMsg "Value: " + str(RLData)
+            If SHEFFormat Then
+              DataToTx(I, 0) = DataToTx(I, 0) + " " + Format("%.*f",DataToTx (I, 4), RLData) & " "
+            Else
+               DataToTx(I, 0) = DataToTx(I, 0) + Bin6(RLData * (10 ^ DataToTx (I, 4)),3)
+               StatusMsg "ValueBin6: " + Bin6(RLData * (10 ^ DataToTx (I, 4)),3)
+            End If
+         Else
+            If SHEFFormat Then
+               DataToTx(I, 0) = DataToTx(I, 0) + " M" 
+               StatusMsg "Value = M"
+            Else
+               DataToTx(I, 0) = DataToTx(I, 0) + "///"
+               StatusMsg "Value = ///"
+            End If
+         End If
+         TSens = TSens - DataToTx(I, 2)
+      Next T
+    Next I
+
+    'loop to build entire tx buffer from each sensor message
+    'minus last value because we don't want a space at the end of the tx
+    For I = 0 To NumSensors
+       TxDataBuffer = TxDataBuffer + DataToTx(I, 0)
+    Next I
+
+    StatusMsg "Tx Data len = "&(Len(TxDataBuffer))
+    FormatIridiumData = TxDataBuffer
+
+End Function
+
+
+'********************* FUNCTION ReadLog *****************************************
+'
+Function ReadLog(LogName, Sensor, TimeStamp)
+   ' LogName, Sensor, and TimeStamp are inputs. RLData, RLQuality, and RLUnits
+   ' are global variables that receive this function's outputs.
+   ' If Sensor at Timestamp is found, 1 is returned. Otherwise, 0.
+   ReadLog = 0
+   Type = 0
+   TimeFound = 0
+   SensorFound = ""
+   FileNum = FreeFile
+   Open LogName for Log as FileNum
+   Seek FileNum, TimeStamp
+   If Not Eof(FileNum) Then
+      Input FileNum, Type, TimeFound, SensorFound, RLData, RLQuality, RLUnits
+      Do While TimeFound = TimeStamp And Not EOF(FileNum)
+         If SensorFound = Sensor Then
+            If RLQuality = "G" Then
+               ReadLog = 1
+            End If
+            Exit Do
+         Else
+            ' Log may contain multiple entries for this time-slot so keep looking.
+            ' Original Seek finds last entry for specified time, so move to previous.
+            Seek FileNum, Next
+            Input FileNum, Type, TimeFound, SensorFound, RLData, RLQuality, RLUnits
+         End If
+      End Loop
+   End If
+   Close FileNum
+End Function
+
