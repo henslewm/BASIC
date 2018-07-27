@@ -1,0 +1,11 @@
+1.0.6.8b
+o There is now a focus check on edit commands. They will only work if the editor has focus.
+o Return (Ctrl+F2) from Find Declare (F2) now returns to the correct position even if file is edited.
+o Find Next (F3) now works with find in All Open Files and All Project Files.
+o Fixed bug with custom controls in resource editor.
+1.0.6.8
+o Fixed bug with build options. Moving an item abowe first item created duplicate items.
+o Fixed a buffer overrun bug with #Include / #Inclib code complete list.
+o Fixed a bug in FbEdit.ini section [AutoFormat] that caused problems with find and replace.
+  14=type $ !as,14,0,1 is changed to 14=type!as,14,0,1
+o Updated FbDebug.dll. Debugging now works with recent builds of FreeBASIC 021
