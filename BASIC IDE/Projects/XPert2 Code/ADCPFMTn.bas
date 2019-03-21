@@ -1,12 +1,21 @@
 '----- ADCP Message Formatter -----------------------------------------------
 '
+'     Filename: ADCPFMTn
+'     Function: Sontek ADCP GOES Formatter
+'     Original Author: Phil Libraro
+'     Date Created: Unknown
+'
+'     Revision Author: Winston Hensley(henslewm@gmail.com)
+'     Revised Date: 04/05/2019
+'       
+'
 '     This basic code is the self timed formatter for Sontec ADCP'S
 '     In this case, we capture RECENT.DAT snd store to a working output.dat.
 '     The GOES message is stored in SAT.Dat. That way, the user can define a
 '     special log in name and password and retrieve the message that way.
 '
-'     The function SELFTIMED_STFormatter handles the message capture.  Most of this
-'     routine is straight from the XPert BASIC manual.
+'     It is believed that '-' and '+' are used as delimiters for header lines
+'     and Data Bin lines.
 '
 '     Note that Selftime_STFormatter is the current message built by the C code
 '------------------------------------------------------------------------------
@@ -48,53 +57,74 @@ Public FUNCTION SELFTIMED_STFormatter
    'TStr IS USED AS PLACEHOLDER TO READ LINES FROM RECENT.DAT
    TStr = "";
 
-   'READ PAST 7 LINES - 8TH LINE BEGINS HEADER
+'1 READ PAST 7 LINES - 8TH LINE BEGINS HEADER
    FOR I = 1 TO 8
 		LINE INPUT F2, TStr   
    NEXT I
-
-   ''''''''''''''THIS IS WHERE THE PSEUDOBINARY ENCODING OF DATA HAPPENS
    'AT THIS POINT TStr LOOKS LIKE THE STRING BELOW
    '  16        M878        3328 2010  5 17 15 58 47 2 2 1 1
+
+   'ENCODE TO PSEUDOBINARY AND PRINT TO F3(Sat.Dat)
+   'VAL() Returns numbers contained in string as a numeric value of appropriate type. Syntax: Val(string)
+   'MID() Returns the substring of string that starts at position start (1-based), and continues for length number of characters.Syntax: Mid(string, start[, length])
+   'BIN6() Converts a number to up to 3-byte long, 6-bit packed binary string, used for GOES formatting. MSB first, max 3 bytes[-131072...131071]Syntax: Bin6(num, count)
    PRINT F3, "-";BIN6(VAL(MID(TStr, 1,5)),2);MID(TStr,12,5);Bin6(VAL(Mid(TStr,26,3)),2);Bin6(VAL(MID(TStr,30,4)),2);Bin6(VAL(MID(TStr,35,2)),2);Bin6(VAL(MID(TStr,38,2)),2);
    PRINT F3, Bin6(VAL(MID(TStr,41,2)),2);Bin6(VAL(MID(TStr,44,2)),2);Bin6(VAL(Mid(TStr,47,2)),2);Bin6(VAL(MID(TStr,49,2)),2);Bin6(VAL(MID(TStr,51,2)),2);Bin6(VAL(MID(TStr,53,2)),2);Bin6(VAL(MID(TStr,55,2)),2);
    TStr = ""
  
-  LINE INPUT F2, TStr   'read in second header line
+'2 READ SECOND HEADER LINE
+   LINE INPUT F2, TStr   
    '    35   400   150   300   299
+   
+   'ENCODE TO PSEUDOBINARY AND PRINT TO SAT.DAT
    PRINT F3, "-";BIN6(VAL(MID(TStr,1,6)),2);BIN6(VAL(MID(TStr,7,6)),2);BIN6(VAL(MID(TStr,13,6)),2);BIN6(VAL(MID(TStr,19,6)),2);BIN6(VAL(MID(TStr,25,6)),2);
    TStr = ""
-   LINE INPUT F2, TStr   'read in third header line
+   
+'3 READ THIRD HEADER LINE
+   LINE INPUT F2, TStr   
 '   2813      4     -2   2571   4202      1      0      0      4      9  15354
+
+   'ENCODE TO PSEUDOBINARY AND PRINT TO SAT.DAT
    PRINT F3, "-";Right(BIN6(VAL(MID(TStr,1,7)),3),2);BIN6(VAL(MID(TStr,8,7)),2);BIN6(VAL(MID(TStr,15,7)),2);BIN6(VAL(MID(TStr,22,7)),3);BIN6(VAL(MID(TStr,29,7)),3);BIN6(VAL(MID(TStr,36,7)),2);BIN6(VAL(MID(TStr,43,7)),2);
    PRINT F3, BIN6(VAL(MID(TStr,50,7)),2);BIN6(VAL(MID(TStr,57,7)),3);BIN6(VAL(MID(TStr,64,7)),3);BIN6(VAL(MID(TStr,71,7)),3);
    TStr = ""
-   LINE INPUT F2, TStr   'read in fourth header line
+   
+'4 READ IN FOURTH HEADER LINE
+   LINE INPUT F2, TStr
 '   0   0   0   0  94 189 104 184  14  14   0   0 141 244   0 118
+
+   'ENCODE TO PSEUDOBINARY AND PRINT TO SAT.DAT
    PRINT F3, "-";BIN6(VAL(MID(TStr,1,4)),2);BIN6(VAL(MID(TStr,5,4)),2);BIN6(VAL(MID(TStr,9,4)),2);BIN6(VAL(MID(TStr,13,4)),2);BIN6(VAL(MID(TStr,17,4)),2);BIN6(VAL(MID(TStr,21,4)),2);BIN6(VAL(MID(TStr,25,4)),2);BIN6(VAL(MID(TStr,29,4)),2);
    PRINT F3, BIN6(VAL(MID(TStr,33,4)),2);BIN6(VAL(MID(TStr,37,4)),2);BIN6(VAL(MID(TStr,41,4)),2);BIN6(VAL(MID(TStr,45,4)),2);BIN6(VAL(MID(TStr,49,4)),2);BIN6(VAL(MID(TStr,53,4)),2);BIN6(VAL(MID(TStr,57,4)),2);BIN6(VAL(MID(TStr,61,4)),2);
 
-   'READ IN ALL BIN LINES
+   'READ IN *ALL* BIN LINES
    Do While Not Eof(F2) 
       TStr = ""
-      LINE INPUT F2, TStr   'read in profile line
+      
+'**************************READ IN PROFILE LINES
+      LINE INPUT F2, TStr   
       If Len(TStr) > 2 then
-         PRINT F3,"+";Right(BIN6(VAL(MID(TStr,1,3)),2),1);BIN6(VAL(MID(TStr,4,7)),2);BIN6(VAL(MID(TStr,11,7)),2);BIN6(VAL(MID(TStr,18,4)),2);BIN6(VAL(MID(TStr,22,4)),2);BIN6(VAL(MID(TStr,26,4)),2);BIN6(VAL(MID(TStr,30,4)),2);
+         PRINT F3,"+";Right(BIN6(VAL(MID(TStr,1,3)),2),1);BIN6(VAL(MID(TStr,4,7)),3);BIN6(VAL(MID(TStr,11,7)),3);BIN6(VAL(MID(TStr,18,4)),2);BIN6(VAL(MID(TStr,22,4)),2);BIN6(VAL(MID(TStr,26,4)),2);BIN6(VAL(MID(TStr,30,4)),2);
       End if
    End Loop
-	PRINT F3," ";
+'*************************************************
    CLOSE F2
+   
+   'PRINT SPACE AT END OF Sat.Dat AND CLOSE FILE
+	PRINT F3," ";
    CLOSE F3
+   
+   'RE-OPEN Sat.Dat AND READ IT'S CONTENTS TO DATASTR VARIABLE
+   'ReadB() RETURNS #BYTES READ TO 'result'
    OPEN "SAT.Dat" FOR INPUT AS F3
    result = ReadB(F3, DATASTR, 3000)
+   
+   ' CLOSE Sat.Dat
    CLOSE F3
 
    'THE FUNCTION NAMED VARIABLE IS RETURNED WHEN THE SELFTIMED_STFORMATTER FUNCTION IS CALLED
    Selftimed_STFormatter = DATASTR
 END FUNCTION
-
-
-
 
 
 'EXAMPLE RECENT.DAT FROM SONTEK CURRENT METER ON AN XPERT DATALOGGER
